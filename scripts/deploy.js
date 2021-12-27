@@ -1,3 +1,5 @@
+// XXX Not used any more - we now use hardhat-deploy 
+
 const { ethers } = require("hardhat");
 const fs = require('fs');
 

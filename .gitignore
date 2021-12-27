@@ -1,3 +1,4 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 node_modules
 .env
 .secret
@@ -5,6 +6,38 @@ coverage
 coverage.json
 typechain
 
-#Hardhat files
-cache
-artifacts
+**/aws.json
+
+artifacts*
+deployments*
+cache*
+*.txt
+
+tenderly.yaml
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+coverage
+
+# production
+build
+
+# misc
+.DS_Store
+.env*
+env*
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+yarn.lock 
+
+.idea
+
+# Local Netlify folder
+.netlify
