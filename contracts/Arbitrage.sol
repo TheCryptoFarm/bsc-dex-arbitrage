@@ -117,7 +117,7 @@ contract Arbitrage is Ownable {
         uint amountToRepay = amountIn+fee;
 
         // amountReceived = IERC20(path[0]).balanceOf(address(this)); //To test even if it's not profitable (we send WBNB to cover fees)
-        require(amountReceived>amountIn,"No profit");
+        require(amountReceived>amountIn,"Not profitable");
         require(amountReceived>amountToRepay,"Could not afford loan fees");
         IERC20(path[0]).transfer(msg.sender, amountToRepay);
     }
