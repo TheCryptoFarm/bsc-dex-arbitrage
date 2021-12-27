@@ -15,7 +15,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract Arbitrage is Ownable {
     using SafeMath for uint;
     
-    event gotFlashed(address tokenBorrow, uint amountIn, uint amount0, uint amount1);
+    event gotGordoned(address tokenBorrow, uint amountIn, uint amount0, uint amount1);
     
     IChiToken public chiToken;
     
@@ -73,7 +73,7 @@ contract Arbitrage is Ownable {
     function getAmountsOut(uint _amountIn, address[] memory _path, address[] memory _pairPath, uint[] _fee) returns (uint[] amounts) {
         uint256[] memory amounts = PancakeLibrary.getAmountsOut(_amountIn, _path, _pairPath, _fee);
     }
-    function flashGordon(uint _amountIn, address _loanFactory,address[] memory _loanPair, address[] memory _path, address[] memory _pairPath, uint[] memory _swapFees) external payable onlyOwner gasTokenRefund {
+    function gordon(uint _amountIn, address _loanFactory,address[] memory _loanPair, address[] memory _path, address[] memory _pairPath, uint[] memory _swapFees) external payable onlyOwner gasTokenRefund {
         if (msg.value > 0) {
             WBNB(_path[0]).deposit{value:msg.value, gas:50000}();
         }
@@ -108,7 +108,7 @@ contract Arbitrage is Ownable {
         require(msg.sender == pair, "Sender not pair");
         require(_sender == address(this), "Not sender");
 
-        emit gotFlashed(path[0], amountIn, _amount0, _amount1);
+        emit gotGordoned(path[0], amountIn, _amount0, _amount1);
 
         uint amountReceived = vSwap(amountIn, path, pairPath, swapFees, address(this), block.timestamp + 60);
 
