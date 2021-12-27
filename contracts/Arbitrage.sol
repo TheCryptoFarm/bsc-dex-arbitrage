@@ -70,8 +70,8 @@ contract Arbitrage is Ownable {
         _swap(amounts, path, pairPath, to);
         return amounts[amounts.length - 1];
     }
-    function getAmountsOut(uint _amountIn, address[] memory _path, address[] memory _pairPath, uint[] _fee) returns (uint[] amounts) {
-        uint256[] memory amounts = PancakeLibrary.getAmountsOut(_amountIn, _path, _pairPath, _fee);
+    function getAmountsOut(uint _amountIn, address[] memory _path, address[] memory _pairPath, uint[] memory _fee) external view returns (uint[] memory) {
+        return PancakeLibrary.getAmountsOut(_amountIn, _path, _pairPath, _fee);
     }
     function gordon(uint _amountIn, address _loanFactory,address[] memory _loanPair, address[] memory _path, address[] memory _pairPath, uint[] memory _swapFees) external payable onlyOwner gasTokenRefund {
         if (msg.value > 0) {
