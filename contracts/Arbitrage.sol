@@ -40,8 +40,10 @@ contract Arbitrage is Ownable {
     constructor (address _gasToken, address[] _arbWallets) {
         chiToken = IChiToken(_gasToken);
         arbWallets[this.owner()] = true;
-        for (uint i=0;i<_arbWallets.length;i++) {
-            arbWallets[_arbWallets[i]] = true;
+        if (_arbWallets.length > 0) {
+            for (uint i=0;i<_arbWallets.length;i++) {
+                arbWallets[_arbWallets[i]] = true;
+            }
         }
     }
     function mintGasToken(uint amount) public {
