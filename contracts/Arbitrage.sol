@@ -71,6 +71,7 @@ contract Arbitrage is Ownable {
     function getAmountsOut(uint _amountIn, address[] memory _path, address[] memory _pairPath, uint[] memory _fee) external view returns (uint[] memory) {
         return PancakeLibrary.getAmountsOut(_amountIn, _path, _pairPath, _fee);
     }
+    // hawk is a simple minded desk trader that does exactly what he is told, using funds held by this contract
     function hawk(uint _amountIn, address _tokenFrom, address _tokenTo, address _router, uint deadline) external payable ensure(deadline) onlyArbs gasTokenRefund {
         if (msg.value > 0) {
             // Assumes _tokenFrom is WBNB 
@@ -82,7 +83,8 @@ contract Arbitrage is Ownable {
         safeTransferFrom(_tokenFrom, address(this), pairAddress, _amountIn);
         _swap([_amountIn], [_tokenFrom, _tokenTo], [pairAddress], address(this));
     }
-    function gekko(uint _amountIn, address[] memory _path, address[] memory _pairPath, uint deadline) external payable ensure(deadline) onlyArbs gasTokenRefund {
+    // budFox does advanced trades using funds held by this contract
+    function budFox(uint _amountIn, address[] memory _path, address[] memory _pairPath, uint deadline) external payable ensure(deadline) onlyArbs gasTokenRefund {
         if (msg.value > 0) {
             // Assumes _path[0] is WBNB
             WBNB(_path[0]).deposit{value:msg.value, gas:50000}();
@@ -93,6 +95,7 @@ contract Arbitrage is Ownable {
         safeTransferFrom(_tokenFrom, address(this), pairAddress, _amountIn);
         _swap([_amountIn], _path, _pairPath, address(this));
     }
+    // gordon uses funds loaned to him to perform advanced trades
     function gordon(uint _amountIn, address _loanFactory, address[] memory _loanPair, address[] memory _path, address[] memory _pairPath, uint[] memory _swapFees, uint deadline) external payable ensure(deadline) onlyArbs gasTokenRefund {
         if (msg.value > 0) {
             // Assumes _path[0] is WBNB
