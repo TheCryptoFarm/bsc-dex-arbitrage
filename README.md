@@ -1,15 +1,28 @@
-# Basic Sample Hardhat Project
+# BSC DEX Arbitrage
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts.
+Requirements:
 
-Try running some of the following tasks:
+Node 14 
+Yarn 
+
+Install:
 
 ```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-node scripts/sample-script.js
-npx hardhat help
+yarn
+```
+
+Generate a mnemonic
+
+```shell
+npx hardhat generate
+npx hardhat account
+```
+
+Never share the mnemonic.txt or the address text file with anyone
+Back both of the .txt files up, securely, twice
+
+Deploy
+
+```shell
+npx hardhat deploy --network bsc_testnet
 ```
