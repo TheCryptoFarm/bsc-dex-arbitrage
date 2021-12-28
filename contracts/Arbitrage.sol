@@ -15,7 +15,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract Arbitrage is Ownable {
     using SafeMath for uint;
     
-    event gotGordoned(address tokenBorrow, uint amountIn, uint amount0, uint amount1);
+    event Gordon(address tokenBorrow, uint amountIn, uint amount0, uint amount1);
     
     IChiToken public chiToken;
     mapping(address => bool) public arbWallets;
@@ -129,7 +129,7 @@ contract Arbitrage is Ownable {
         address token1 = IUniswapV2Pair(msg.sender).token1();
         address pair = IUniswapV2Factory(flashFactory).getPair(token0, token1);
         
-        emit gotGordoned(path[0], amountIn, _amount0, _amount1);
+        emit Gordon(path[0], amountIn, _amount0, _amount1);
 
         uint256[] memory amounts = PancakeLibrary.getAmountsOut(amountIn,path,pairPath,fee);
         safeTransferFrom(path[0], address(this), pairPath[0], amounts[0]);
