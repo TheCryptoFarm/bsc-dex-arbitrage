@@ -85,7 +85,7 @@ contract Arbitrage is Ownable {
         return PancakeLibrary.getAmountsOut(_amountIn, _path, _pairPath, _fee);
     }
     // hawk is a simple minded desk trader that does exactly what he is told, using funds held by this contract
-    function hawk(uint _amountIn, address _tokenFrom, address _tokenTo, address _router, uint deadline) external payable ensure(deadline) onlyArbs gasTokenRefund {
+    function hawk(uint _amountIn, address _tokenFrom, address _tokenTo, address _router, uint[] memory _swapFees, uint deadline) external payable ensure(deadline) onlyArbs gasTokenRefund {
         if (msg.value > 0) {
             // Assumes _tokenFrom is WBNB 
             WBNB(_tokenFrom).deposit{value:msg.value, gas:50000}();
@@ -94,17 +94,18 @@ contract Arbitrage is Ownable {
         address pairAddress = IUniswapV2Factory(factory).getPair(_tokenFrom, _tokenTo);
         require(pairAddress != address(0), "Pool does not exist");
         safeTransferFrom(_tokenFrom, address(this), pairAddress, _amountIn);
-        uint256[] memory amounts = new uint256[](1);
+        
         address[] memory path = new address[](2);
         address[] memory pairPath = new address[](1);
-        amounts[0] = _amountIn;
         path[0] = _tokenFrom;
         path[1] = _tokenTo;
         pairPath[0] = pairAddress;
+
+        uint256[] memory amounts = PancakeLibrary.getAmountsOut(_amountIn, path, pairPath, _swapFees);
         _swap(amounts, path, pairPath, address(this));
     }
     // budFox does advanced trades using funds held by this contract
-    function budFox(uint _amountIn, address _factory, address[] memory _path, address[] memory _pairPath, uint deadline) external payable ensure(deadline) onlyArbs gasTokenRefund {
+    function budFox(uint _amountIn, address _factory, address[] memory _path, address[] memory _pairPath, uint[] memory _swapFees, uint deadline) external payable ensure(deadline) onlyArbs gasTokenRefund {
         address pairAddress = IUniswapV2Factory(_factory).getPair(_path[0], _path[1]);
         require(pairAddress != address(0), "Pool does not exist");
         
@@ -113,8 +114,7 @@ contract Arbitrage is Ownable {
             WBNB(_path[0]).deposit{value:msg.value, gas:50000}();
         }
         safeTransferFrom(_path[0], address(this), pairAddress, _amountIn);
-        uint256[] memory amounts = new uint256[](1);
-        amounts[0] = _amountIn;
+        uint256[] memory amounts = PancakeLibrary.getAmountsOut(_amountIn, _path, _pairPath, _swapFees);
         _swap(amounts, _path, _pairPath, address(this));
     }
     // gordon uses funds loaned to him to perform advanced trades
