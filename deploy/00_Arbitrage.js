@@ -10,7 +10,7 @@ module.exports = async ({ getNamedAccounts, deployments, getChainId}) => {
     } else if (chainId == 97) {
       chiToken = "0x83a23e36ca483779704378aa0573c4e0f37d729e";
     } else {
-      console.log("Unkown ChainId - try again");
+      console.log("Unknown ChainId - try again");
       process.exit();
     }
     
