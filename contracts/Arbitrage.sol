@@ -1,19 +1,19 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.0;
+pragma solidity ^0.6.12;
 
 import "./interfaces/WBNB.sol";
 import "./interfaces/IChiToken.sol";
 
+import "./libraries/SafeMath.sol";
 import "./libraries/PancakeLibrary.sol";
 
 import "./interfaces/IUniswapV2Factory.sol";
 import "./interfaces/IUniswapV2Router02.sol";
+import "./interfaces/IERC20.sol";
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./Ownable.sol";
 
 contract Arbitrage is Ownable {
-    using SafeMath for uint;
     
     event Gordon(address tokenBorrow, uint amountIn, uint amount0, uint amount1);
     
@@ -37,7 +37,7 @@ contract Arbitrage is Ownable {
         _;
     }
 
-    constructor (address _gasToken, address[] memory _arbWallets) {
+    constructor (address _gasToken, address[] memory _arbWallets) public {
         chiToken = IChiToken(_gasToken);
         arbWallets[msg.sender] = true;
         if (_arbWallets.length > 0) {

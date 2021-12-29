@@ -1,0 +1,13 @@
+{
+    "name": "app",
+    "version": "0.0.1",
+    "private": "true",
+    "dependencies": {
+      "dotenv": "^6.2.0",
+      "ethers": "^5.4.7",
+      "moment": "^2.25.3",
+      "moment-timezone": "^0.5.28",
+      "console.table": "^0.10.0"
+    }
+  }
+  

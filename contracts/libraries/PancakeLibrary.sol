@@ -1,12 +1,12 @@
-//SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.0;
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "./SafeMath.sol";
 import '../interfaces/IUniswapV2Pair.sol';
 
 library PancakeLibrary {
     using SafeMath for uint256;
-
+    
     // returns sorted token addresses, used to handle return values from pairs sorted in this order
     function sortTokens(address tokenA, address tokenB)
         internal
