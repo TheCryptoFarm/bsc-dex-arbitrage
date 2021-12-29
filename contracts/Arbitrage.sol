@@ -68,19 +68,6 @@ contract Arbitrage is Ownable {
             );
         }
     }
-    function _vSwap(
-        uint256 amountIn,
-        address[] memory path,
-        address[] memory pairPath,
-        uint256[] memory fee,
-        address to,
-        uint256 deadline
-    ) internal virtual ensure(deadline) returns (uint) {
-        uint256[] memory amounts = PancakeLibrary.getAmountsOut(amountIn,path,pairPath,fee);
-        safeTransferFrom(path[0], address(this), pairPath[0], amounts[0]);
-        _swap(amounts, path, pairPath, to);
-        return amounts[amounts.length - 1];
-    }
     function getAmountsOut(uint _amountIn, address[] memory _path, address[] memory _pairPath, uint[] memory _fee) external view returns (uint[] memory) {
         return PancakeLibrary.getAmountsOut(_amountIn, _path, _pairPath, _fee);
     }
