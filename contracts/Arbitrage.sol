@@ -37,9 +37,9 @@ contract Arbitrage is Ownable {
         _;
     }
 
-    constructor (address _gasToken, address[] _arbWallets) {
+    constructor (address _gasToken, address[] memory _arbWallets) {
         chiToken = IChiToken(_gasToken);
-        arbWallets[this.owner()] = true;
+        arbWallets[msg.sender] = true;
         if (_arbWallets.length > 0) {
             for (uint i=0;i<_arbWallets.length;i++) {
                 arbWallets[_arbWallets[i]] = true;
@@ -68,6 +68,19 @@ contract Arbitrage is Ownable {
             );
         }
     }
+    function _vSwap(
+        uint256 amountIn,
+        address[] memory path,
+        address[] memory pairPath,
+        uint256[] memory fee,
+        address to,
+        uint256 deadline
+    ) internal virtual ensure(deadline) returns (uint) {
+        uint256[] memory amounts = PancakeLibrary.getAmountsOut(amountIn,path,pairPath,fee);
+        safeTransferFrom(path[0], address(this), pairPath[0], amounts[0]);
+        _swap(amounts, path, pairPath, to);
+        return amounts[amounts.length - 1];
+    }
     function getAmountsOut(uint _amountIn, address[] memory _path, address[] memory _pairPath, uint[] memory _fee) external view returns (uint[] memory) {
         return PancakeLibrary.getAmountsOut(_amountIn, _path, _pairPath, _fee);
     }
@@ -75,68 +88,73 @@ contract Arbitrage is Ownable {
     function hawk(uint _amountIn, address _tokenFrom, address _tokenTo, address _router, uint deadline) external payable ensure(deadline) onlyArbs gasTokenRefund {
         if (msg.value > 0) {
             // Assumes _tokenFrom is WBNB 
-            WBNB(_path[0]).deposit{value:msg.value, gas:50000}();
+            WBNB(_tokenFrom).deposit{value:msg.value, gas:50000}();
         }
         address factory = IUniswapV2Router01(_router).factory();
         address pairAddress = IUniswapV2Factory(factory).getPair(_tokenFrom, _tokenTo);
         require(pairAddress != address(0), "Pool does not exist");
         safeTransferFrom(_tokenFrom, address(this), pairAddress, _amountIn);
-        _swap([_amountIn], [_tokenFrom, _tokenTo], [pairAddress], address(this));
+        uint256[] memory amounts = new uint256[](1);
+        address[] memory path = new address[](2);
+        address[] memory pairPath = new address[](1);
+        amounts[0] = _amountIn;
+        path[0] = _tokenFrom;
+        path[1] = _tokenTo;
+        pairPath[0] = pairAddress;
+        _swap(amounts, path, pairPath, address(this));
     }
     // budFox does advanced trades using funds held by this contract
-    function budFox(uint _amountIn, address[] memory _path, address[] memory _pairPath, uint deadline) external payable ensure(deadline) onlyArbs gasTokenRefund {
+    function budFox(uint _amountIn, address _factory, address[] memory _path, address[] memory _pairPath, uint deadline) external payable ensure(deadline) onlyArbs gasTokenRefund {
+        address pairAddress = IUniswapV2Factory(_factory).getPair(_path[0], _path[1]);
+        require(pairAddress != address(0), "Pool does not exist");
+        
         if (msg.value > 0) {
             // Assumes _path[0] is WBNB
             WBNB(_path[0]).deposit{value:msg.value, gas:50000}();
         }
-        address factory = IUniswapV2Router01(_router).factory();
-        address pairAddress = IUniswapV2Factory(factory).getPair(_tokenFrom, _tokenTo);
-        require(pairAddress != address(0), "Pool does not exist");
-        safeTransferFrom(_tokenFrom, address(this), pairAddress, _amountIn);
-        _swap([_amountIn], _path, _pairPath, address(this));
+        safeTransferFrom(_path[0], address(this), pairAddress, _amountIn);
+        uint256[] memory amounts = new uint256[](1);
+        amounts[0] = _amountIn;
+        _swap(amounts, _path, _pairPath, address(this));
     }
     // gordon uses funds loaned to him to perform advanced trades
     function gordon(uint _amountIn, address _loanFactory, address[] memory _loanPair, address[] memory _path, address[] memory _pairPath, uint[] memory _swapFees, uint deadline) external payable ensure(deadline) onlyArbs gasTokenRefund {
+        address flashToken0 = _loanPair[0];
+        address flashToken1 = _loanPair[1];
+        address flashFactory = _loanFactory;
+        address pairAddress = IUniswapV2Factory(flashFactory).getPair(flashToken0, flashToken1);
+        require(pairAddress != address(0), "Pool does not exist");
+        
         if (msg.value > 0) {
             // Assumes _path[0] is WBNB
             WBNB(_path[0]).deposit{value:msg.value, gas:50000}();
         }
-        address flashToken0 = _loanPair[0];
-        address flashToken1 = _loanPair[1];
-        address flashFactory = _loanFactory;
-        
-        address pairAddress = IUniswapV2Factory(flashFactory).getPair(flashToken0, flashToken1);
-        require(pairAddress != address(0), "Pool does not exist");
-
-        address token0 = IUniswapV2Pair(pairAddress).token0();
-        address token1 = IUniswapV2Pair(pairAddress).token1();
-
-        uint amount0Out = flashToken0 == token0 ? _amountIn : 0;
-        uint amount1Out = flashToken0 == token1 ? _amountIn : 0;
-
+        uint amount0Out = flashToken0 == IUniswapV2Pair(pairAddress).token0() ? _amountIn : 0;
+        uint amount1Out = flashToken0 == IUniswapV2Pair(pairAddress).token1() ? _amountIn : 0;
         bytes memory data = abi.encode(_amountIn,_path,_pairPath,flashFactory,_swapFees);
-
+    
         IUniswapV2Pair(pairAddress).swap(
             amount0Out,
             amount1Out,
             address(this),
             data
         );
+    
     }
     function pancakeCall(address _sender, uint _amount0, uint _amount1, bytes calldata _data) external {
-        require(msg.sender == pair, "Sender not pair");
-        require(_sender == address(this), "Not sender");
         (uint amountIn, address[] memory path, address[] memory pairPath, address flashFactory, uint[] memory swapFees) = abi.decode(_data, (uint, address[], address[], address, uint[]));
 
         address token0 = IUniswapV2Pair(msg.sender).token0();
         address token1 = IUniswapV2Pair(msg.sender).token1();
         address pair = IUniswapV2Factory(flashFactory).getPair(token0, token1);
-        
+        require(msg.sender == pair, "Sender not pair");
+        require(_sender == address(this), "Not sender");
+
         emit Gordon(path[0], amountIn, _amount0, _amount1);
 
-        uint256[] memory amounts = PancakeLibrary.getAmountsOut(amountIn,path,pairPath,fee);
+        uint256[] memory amounts = PancakeLibrary.getAmountsOut(amountIn,path,pairPath,swapFees);
         safeTransferFrom(path[0], address(this), pairPath[0], amounts[0]);
-        _swap(amounts, path, pairPath, to);
+        _swap(amounts, path, pairPath, address(this));
 
         uint amountReceived = amounts[amounts.length - 1];
 
@@ -162,7 +180,7 @@ contract Arbitrage is Ownable {
     }
     function removeArbWallets(address[] memory _oldArbs) public onlyOwner {
         for (uint i=0;i<_oldArbs.length;i++) {
-            delete arbWallets[_oldPandas[i]];
+            delete arbWallets[_oldArbs[i]];
         }
     }
 }
