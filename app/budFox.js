@@ -11,15 +11,19 @@ const arbContract = new ethers.Contract(process.env.CONTRACT_ADDRESS, arbABI, ac
 
 const budFox = async () => {
     try {
+        // [WBNB, ETH, BUSD]
         const path = [
             "0xae13d989dac2f0debff460ac112a837c89baa7cd",
             "0x8babbb98678facc7342735486c851abd7a0d17ca",
             "0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7",
         ];
+        // [PCSv2 WBNB-ETH, PCSv2 ETH-BUSD]
         const pairPath = [
             "0xb27F628C12573594437B180A1eA1542d15E0cb78",
             "0x6a9D99Db0bD537f3aC57cBC316A9DD8b11A703aC"
         ];
+        // Fees assoicated to each element in pairPath
+        // 25 would be 0.25% fee
         const fees = [25, 25];
 
         let tx = await arbContract.budFox(
