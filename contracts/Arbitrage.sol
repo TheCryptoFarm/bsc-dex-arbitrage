@@ -50,6 +50,7 @@ contract Arbitrage is Ownable {
         chiToken.mint(amount);
     }
     function safeTransferFrom(address token, address from, address to, uint256 value) internal {
+        IERC20(token).approve(address(this), value);
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(0x23b872dd, from, to, value));
         require(success && (data.length == 0 || abi.decode(data, (bool))),"TransferHelper: TRANSFER_FROM_FAILED");
     }
