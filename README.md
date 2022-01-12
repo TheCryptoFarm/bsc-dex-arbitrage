@@ -2,10 +2,15 @@
 
 Requirements:
 
-Node 14 
-Yarn 
+Node 14 / Yarn 
 
 Install:
+
+
+```shell
+npm i -g yarn
+```
+
 
 ```shell
 yarn
@@ -19,6 +24,7 @@ npx hardhat account
 ```
 
 Never share the mnemonic.txt or the address text file with anyone
+
 Back both of the .txt files up, securely, twice
 
 Deploy
