@@ -18,7 +18,7 @@ const WBNB = {
 }
 
 // Amount to withdraw
-const amount = ethers.parseEther("1");
+const amount = ethers.utils.parseEther("1");
 
 const funds = async () => {
     const { chainId } = await provider.getNetwork();

@@ -10,7 +10,7 @@ const arbABI = new ethers.utils.Interface(require("./arbABI.json"));
 const arbContract = new ethers.Contract(process.env.CONTRACT_ADDRESS, arbABI, account);
 
 const TOKEN = ""; // Address
-const amount = ethers.parseUnits("1", "18"); // Watch Decimals
+const amount = ethers.utils.parseUnits("1", "18"); // Watch Decimals
 
 const funds = async () => {
     try {
