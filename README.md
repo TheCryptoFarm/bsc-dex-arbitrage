@@ -32,3 +32,6 @@ Deploy
 ```shell
 npx hardhat deploy --network bsc_testnet
 ```
+
+
+Join us on Discord https://discord.gg/H582fcrrvG
