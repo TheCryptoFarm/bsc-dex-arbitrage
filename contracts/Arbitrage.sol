@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "./interfaces/WBNB.sol";
 import "./interfaces/IChiToken.sol";
@@ -74,7 +75,7 @@ contract Arbitrage is Ownable {
     function getAmountsOut(uint _amountIn, address[] memory _path, address[] memory _pairPath, uint[] memory _fee) external view returns (uint[] memory) {
         return PancakeLibrary.getAmountsOut(_amountIn, _path, _pairPath, _fee);
     }
-    // hawk is a simple minded desk trader that does exactly what he is told, using funds held by this contract
+    // hawk is a simple minded desk trader that does exactly what he is told, using funds sent as Ether value or tokens held by this contract
     function hawk(uint _amountIn, uint _amountOutMin, address _tokenFrom, address _tokenTo, address _router, uint[] memory _swapFees, uint deadline) external payable ensure(deadline) onlyArbs gasTokenRefund returns (bool success) {
         if (msg.value > 0) {
             // Assumes _tokenFrom is WBNB 
@@ -96,13 +97,12 @@ contract Arbitrage is Ownable {
         safeTransferFrom(_tokenFrom, address(this), pairAddress, amounts[0]);
         _swap(amounts, path, pairPath, address(this));
     }
-    // budFox does advanced trades using funds held by this contract
+    // budFox does advanced trades using funds sent as Ether value or tokens held by this contract
     function budFox(uint _amountIn, uint _amountOutMin, address[] calldata _path, address[] calldata _pairPath, uint[] calldata _swapFees, uint deadline) external payable ensure(deadline) onlyArbs gasTokenRefund returns (bool success) { 
         if (msg.value > 0) {
             // Assumes _path[0] is WBNB
             WBNB(_path[0]).deposit{value:msg.value, gas:50000}();
         }
-        
         uint256[] memory amounts = PancakeLibrary.getAmountsOut(_amountIn, _path, _pairPath, _swapFees);
         success = true;
         if (amounts[amounts.length - 1] < _amountOutMin) return success;
@@ -110,13 +110,9 @@ contract Arbitrage is Ownable {
         _swap(amounts, _path, _pairPath, address(this));
     }
     // gordon uses funds loaned to him to perform advanced trades
-    function gordon(uint _amountIn, address _loanFactory, address[] memory _loanPair, address[] memory _path, address[] memory _pairPath, uint[] memory _swapFees, uint deadline) external payable ensure(deadline) onlyArbs gasTokenRefund {
+    function gordon(uint _amountIn, address _loanFactory, address[] memory _loanPair, address[] memory _path, address[] memory _pairPath, uint[] memory _swapFees, uint deadline) external ensure(deadline) onlyArbs gasTokenRefund {
         address pairAddress = IUniswapV2Factory(_loanFactory).getPair(_loanPair[0], _loanPair[1]);
         require(pairAddress != address(0), "Pool does not exist");
-        if (msg.value > 0) {
-            // Assumes _path[0] is WBNB
-            WBNB(_path[0]).deposit{value:msg.value, gas:50000}();
-        }
         uint amount0Out = _loanPair[0] == IUniswapV2Pair(pairAddress).token0() ? _amountIn : 0;
         uint amount1Out = _loanPair[1] == IUniswapV2Pair(pairAddress).token1() ? _amountIn : 0;
         bytes memory data = abi.encode(_amountIn,_path,_pairPath,_loanFactory,_swapFees);
@@ -127,9 +123,25 @@ contract Arbitrage is Ownable {
             data
         );
     }
-    function pancakeCall(address _sender, uint _amount0, uint _amount1, bytes calldata _data) external {
-        (uint amountIn, address[] memory path, address[] memory pairPath, address flashFactory, uint[] memory swapFees) = abi.decode(_data, (uint, address[], address[], address, uint[]));
+    
+    fallback() external {
+        (address sender, 
+        uint256 amount0, 
+        uint256 amount1, 
+        bytes memory data) = abi.decode(msg.data[4:], 
+            (address, 
+             uint256, 
+             uint256, 
+             bytes));
+        _callback(sender, amount0, amount1, data);
+    }
 
+    function _callback(address _sender, uint _amount0, uint _amount1, bytes memory _data) internal {
+        (uint amountIn, 
+         address[] memory path, 
+         address[] memory pairPath, 
+         address flashFactory, 
+         uint[] memory swapFees) = abi.decode(_data, (uint, address[], address[], address, uint[]));
         address token0 = IUniswapV2Pair(msg.sender).token0();
         address token1 = IUniswapV2Pair(msg.sender).token1();
         address pair = IUniswapV2Factory(flashFactory).getPair(token0, token1);
@@ -138,20 +150,21 @@ contract Arbitrage is Ownable {
 
         emit Gordon(path[0], amountIn, _amount0, _amount1);
 
-        uint256[] memory amounts = PancakeLibrary.getAmountsOut(amountIn,path,pairPath,swapFees);
+        uint256[] memory amounts = PancakeLibrary.getAmountsOut(amountIn, path, pairPath, swapFees);
         safeTransferFrom(path[0], address(this), pairPath[0], amounts[0]);
         _swap(amounts, path, pairPath, address(this));
 
         uint amountReceived = amounts[amounts.length - 1];
+        require(amountReceived > amountIn,"Not profitable");
 
         // Pay back flashloan
-        uint fee = ((amountIn * 3)/ 997) +1;
-        uint amountToRepay = amountIn+fee;
+        uint fee = ((amountIn * 3) / 997) +1;
+        uint amountToRepay = amountIn + fee;
 
-        require(amountReceived>amountIn,"Not profitable");
-        require(amountReceived>amountToRepay,"Could not afford loan fees");
+        require(amountReceived > amountToRepay,"Could not afford loan fees");
         IERC20(path[0]).transfer(msg.sender, amountToRepay);
     }
+
     function withdraw(uint _amount, address _token, bool isBNB) public onlyOwner {
         if (isBNB){
             _amount > 0 ? payable(msg.sender).send(_amount) : payable(msg.sender).send(address(this).balance);
